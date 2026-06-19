@@ -24,12 +24,22 @@ cp .env.example .env
 GOOGLE_SHEETS_SPREADSHEET_ID=...
 GOOGLE_SERVICE_ACCOUNT_EMAIL=...
 GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+# Альтернатива для CI:
+GOOGLE_PRIVATE_KEY_BASE64=
 TELEGRAM_BOT_TOKEN=...
 TELEGRAM_CHAT_ID=...
 PROZORRO_PORTAL_API_BASE_URL=https://prozorro.gov.ua/api
 ```
 
 `GOOGLE_PRIVATE_KEY` можна залишити в один рядок із `\n`; сервіс сам перетворить їх на переноси рядків.
+
+Для GitHub Actions найстабільніший варіант - створити secret `GOOGLE_PRIVATE_KEY_BASE64`. На локальній машині:
+
+```bash
+node -e "const fs=require('fs'); const key=JSON.parse(fs.readFileSync('path/to/service-account.json','utf8')).private_key; console.log(Buffer.from(key).toString('base64'))"
+```
+
+Але в secret треба покласти не весь JSON, а base64 від значення поля `private_key`. Якщо використовуєте `GOOGLE_PRIVATE_KEY`, вставляйте саме `private_key` з JSON без зовнішніх лапок.
 
 ## Google Sheets
 
@@ -123,11 +133,12 @@ npm run monitor:once
 GOOGLE_SHEETS_SPREADSHEET_ID
 GOOGLE_SERVICE_ACCOUNT_EMAIL
 GOOGLE_PRIVATE_KEY
+GOOGLE_PRIVATE_KEY_BASE64
 TELEGRAM_BOT_TOKEN
 TELEGRAM_CHAT_ID
 ```
 
-`GOOGLE_PRIVATE_KEY` вставляйте повністю, включно з:
+Потрібен або `GOOGLE_PRIVATE_KEY`, або `GOOGLE_PRIVATE_KEY_BASE64`. `GOOGLE_PRIVATE_KEY` вставляйте повністю, включно з:
 
 ```text
 -----BEGIN PRIVATE KEY-----
