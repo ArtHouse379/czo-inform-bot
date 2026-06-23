@@ -26,6 +26,19 @@ const severityLabels: Record<TenderEvent['severity'], string> = {
 	critical: 'критичний',
 }
 
+const tenderStatusDescriptions: Record<string, string> = {
+	'active.enquiries': 'період уточнень',
+	'active.tendering': 'прийом тендерних пропозицій',
+	'active.auction': 'аукціон',
+	'active.qualification': 'кваліфікація учасників',
+	'active.awarded': 'визначено переможця, очікується укладення договору',
+	'active.pre-qualification': 'попередня кваліфікація учасників',
+	'active.pre-qualification.stand-still': 'період оскарження після попередньої кваліфікації',
+	unsuccessful: 'закупівля не відбулася',
+	complete: 'закупівля завершена, договір укладено',
+	cancelled: 'закупівля скасована',
+}
+
 export class TelegramClient {
 	private readonly http: AxiosInstance
 
@@ -50,7 +63,7 @@ export class TelegramClient {
 
 function formatMessage(event: TenderEvent, tender: ProzorroTender): string {
 	const details = formatDetails(event.details)
-	return [
+	const lines = [
 		'🔔 Оновлення у закупівлі',
 		'',
 		`Закупівля: ${event.tenderId}`,
@@ -60,12 +73,17 @@ function formatMessage(event: TenderEvent, tender: ProzorroTender): string {
 		`Рівень: ${severityLabels[event.severity]}`,
 		'',
 		`Назва: ${tender.title ?? ''}`,
-		`Статус: ${tender.status ?? ''}`,
-		'',
-		`Деталі: ${details}`,
-		'',
-		`Потрібна реакція: ${event.needsAction ? 'Так' : 'Ні'}`,
-	].join('\n')
+		`Статус: ${formatTenderStatus(tender.status)}`,
+	]
+
+	const statusChange = formatStatusChange(event)
+	if (statusChange) {
+		lines.push(`Зміна статусу: ${statusChange}`)
+	}
+
+	lines.push('', `Деталі: ${details}`, '', `Потрібна реакція: ${event.needsAction ? 'Так' : 'Ні'}`)
+
+	return lines.join('\n')
 }
 
 function formatDetails(details: string | undefined): string {
@@ -78,4 +96,21 @@ function formatDetails(details: string | undefined): string {
 	}
 
 	return details
+}
+
+function formatTenderStatus(status: string | undefined): string {
+	if (!status?.trim()) {
+		return 'не вказано'
+	}
+
+	const description = tenderStatusDescriptions[status]
+	return description ? `${status} — ${description}` : `${status} — невідомий статус`
+}
+
+function formatStatusChange(event: TenderEvent): string | undefined {
+	if (event.eventType !== 'STATUS_CHANGED') {
+		return undefined
+	}
+
+	return `${formatTenderStatus(event.oldValue)} → ${formatTenderStatus(event.newValue)}`
 }
