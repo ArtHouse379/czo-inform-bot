@@ -114,10 +114,6 @@ export class MonitorService {
   }
 
   private async notifyIfImportant(event: TenderEvent, tender: Awaited<ReturnType<ProzorroClient["getTender"]>>): Promise<boolean> {
-    if (!["warning", "critical"].includes(event.severity)) {
-      return false;
-    }
-
     try {
       await this.telegramClient.sendEvent(event, tender);
       return true;
